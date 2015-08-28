@@ -4,10 +4,11 @@ import com.datastax.driver.core.*;
 import com.google.gson.*;
 
 import java.net.InetAddress;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class RowUtils {
-
+    private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss.SSSZ");
     public static String toString(
         DataType type,
         Object value)
@@ -16,12 +17,19 @@ public class RowUtils {
             return (String) value;
         } else if(type.asJavaClass() == InetAddress.class) {
             return ((InetAddress)value).getHostAddress();
+        } else if(type.getName() == DataType.Name.TIMESTAMP){
+            return timestampToString(type, value);
         } else {
             return type.format(value);
         }
     }
 
-
+    private static String timestampToString(DataType type, Object value) {
+        String strValue = type.format(value);
+        Long timestamp = Long.parseLong(strValue);
+        Date date = new Date(timestamp);
+        return dateFormat.format(date);
+    }
 
     public static JsonElement toJson(
             DataType type,
@@ -58,7 +66,7 @@ public class RowUtils {
             case TIMEUUID:
                 return new JsonPrimitive(type.format(value));
             case TIMESTAMP:
-                return new JsonPrimitive(((Date)value).getTime());
+                return new JsonPrimitive(timestampToString(type, value));
             case LIST:
             case SET:
                 return collectionToJson(type, (Collection)value, jsonColumn);
